@@ -72,41 +72,62 @@ function validateRequiredEnv(env: MoltbotEnv): string[] {
     }
   }
 
-// Check for at least one model provider credential:
-// - AI Gateway (OpenAI-compatible) OR direct OpenAI-compatible (DeepSeek) OR direct Anthropic
-if (env.AI_GATEWAY_API_KEY) {
-  // AI Gateway requires both API key and base URL
-  if (!env.AI_GATEWAY_BASE_URL) {
-    missing.push('AI_GATEWAY_BASE_URL (required when using AI_GATEWAY_API_KEY)');
+  // Check for at least one model provider credential:
+  // - AI Gateway (OpenAI-compatible) OR direct OpenAI-compatible (DeepSeek) OR direct Anthropic
+  if (env.AI_GATEWAY_API_KEY) {
+    // AI Gateway requires both API key and base URL
+    if (!env.AI_GATEWAY_BASE_URL) {
+      missing.push('AI_GATEWAY_BASE_URL (required when using AI_GATEWAY_API_KEY)');
+    }
+  } else if (!env.OPENAI_API_KEY && !env.ANTHROPIC_API_KEY) {
+    missing.push('OPENAI_API_KEY or ANTHROPIC_API_KEY or AI_GATEWAY_API_KEY');
   }
-} else if (!env.OPENAI_API_KEY && !env.ANTHROPIC_API_KEY) {
-  missing.push('OPENAI_API_KEY or ANTHROPIC_API_KEY or AI_GATEWAY_API_KEY');
-}
 
   return missing;
 }
 
-/**
- * Build sandbox options based on environment configuration.
- * 
- * SANDBOX_SLEEP_AFTER controls how long the container stays alive after inactivity:
- * - 'never' (default): Container stays alive indefinitely (recommended due to long cold starts)
- * - Duration string: e.g., '10m', '1h', '30s' - container sleeps after this period of inactivity
- * 
- * To reduce costs at the expense of cold start latency, set SANDBOX_SLEEP_AFTER to a duration:
- *   npx wrangler secret put SANDBOX_SLEEP_AFTER
- *   # Enter: 10m (or 1h, 30m, etc.)
- */
+
 function buildSandboxOptions(env: MoltbotEnv): SandboxOptions {
   const sleepAfter = env.SANDBOX_SLEEP_AFTER?.toLowerCase() || 'never';
 
-  // 'never' means keep the container alive indefinitely
+  // === DIAGNOSTIC LOUDSPEAKER ===
+  console.log('[DEBUG] ------------------------------------------------');
+  console.log('[DEBUG] Checking Secrets in Worker:');
+  console.log(`[DEBUG] GOOGLE_API_KEY exists? ${!!env.GOOGLE_API_KEY}`);
+  console.log(`[DEBUG] ALLOWED_USERS exists? ${!!env.ALLOWED_USERS}`);
+  console.log(`[DEBUG] BRAVE_API_KEY exists? ${!!env.BRAVE_API_KEY}`);
+  console.log('[DEBUG] ------------------------------------------------');
+  // ==============================
+
+  // We use 'any' here to silence the TypeScript error about 'env'
+  const options: any = {
+    env: {
+      GOOGLE_API_KEY: env.GOOGLE_API_KEY || '',
+      GOOGLE_CSE_ID: env.GOOGLE_CSE_ID || '',
+      BRAVE_API_KEY: env.BRAVE_API_KEY || '',
+      // FIX: Changed from ALLOWED_USERS to match the bash script
+      TELEGRAM_ALLOWED_USER: env.ALLOWED_USERS || '',
+      // FIX: Map the gateway token so the container has it
+      CLAWDBOT_GATEWAY_TOKEN: env.MOLTBOT_GATEWAY_TOKEN || 'admin'
+    }
+  };
+
+  // Handle the keep-alive logic
   if (sleepAfter === 'never') {
-    return { keepAlive: true };
+    options.keepAlive = true;
+  } else {
+    options.sleepAfter = sleepAfter;
   }
 
-  // Otherwise, use the specified duration
-  return { sleepAfter };
+  // === SAFE LOG (NO VALUES) ===
+  console.log('[DEBUG] Options being sent to Sandbox (presence only):', JSON.stringify({
+    has_google_api_key: !!env.GOOGLE_API_KEY,
+    has_google_cse_id: !!env.GOOGLE_CSE_ID,
+    has_brave_api_key: !!env.BRAVE_API_KEY,
+    has_allowed_users: !!env.ALLOWED_USERS,
+  }));
+
+  return options as SandboxOptions;
 }
 
 // Main app
@@ -130,7 +151,8 @@ app.use('*', async (c, next) => {
 // Middleware: Initialize sandbox for all requests
 app.use('*', async (c, next) => {
   const options = buildSandboxOptions(c.env);
-  const sandbox = getSandbox(c.env.Sandbox, 'moltbot', options);
+  // We changed the name to force a fresh VM creation
+  const sandbox = getSandbox(c.env.Sandbox, 'moltbot-live-v5', options);
   c.set('sandbox', sandbox);
   await next();
 });
@@ -189,6 +211,15 @@ app.use('*', async (c, next) => {
 
 // Middleware: Cloudflare Access authentication for protected routes
 app.use('*', async (c, next) => {
+  const url = new URL(c.req.url);
+
+  // === 1. ALLOW TELEGRAM WEBHOOKS (WHITELIST) ===
+  // Telegram sends updates to /api/telegram/* - let them pass without login!
+  if (url.pathname.startsWith('/api/telegram')) {
+    console.log('[AUTH] Allowing Telegram Webhook bypass');
+    return next();
+  }
+
   // Determine response type based on Accept header
   const acceptsHtml = c.req.header('Accept')?.includes('text/html');
   const middleware = createAccessMiddleware({
@@ -425,7 +456,7 @@ async function scheduled(
   _ctx: ExecutionContext
 ): Promise<void> {
   const options = buildSandboxOptions(env);
-  const sandbox = getSandbox(env.Sandbox, 'moltbot', options);
+  const sandbox = getSandbox(env.Sandbox, 'moltbot-live-v5', options);
 
   console.log('[cron] Starting backup sync to R2...');
   const result = await syncToR2(sandbox, env);

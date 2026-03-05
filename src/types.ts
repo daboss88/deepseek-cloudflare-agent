@@ -12,12 +12,18 @@ export interface MoltbotEnv {
   AI_GATEWAY_BASE_URL?: string; // AI Gateway URL (e.g., https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_id}/anthropic)
   // Legacy direct provider configuration (fallback)
   ANTHROPIC_API_KEY?: string;
+  GOOGLE_API_KEY?: string;
+  GOOGLE_CSE_ID?: string;
+  BRAVE_API_KEY?: string;
+  ALLOWED_USERS?: string;
   ANTHROPIC_BASE_URL?: string;
   OPENAI_API_KEY?: string;
-OPENAI_BASE_URL?: string;
-TELEGRAM_DM_POLICY?: string;
+  OPENAI_BASE_URL?: string;
+  TELEGRAM_DM_POLICY?: string;
   MOLTBOT_GATEWAY_TOKEN?: string; // Gateway token (mapped to CLAWDBOT_GATEWAY_TOKEN for container)
-
+  EMAIL_USER?: string;
+  EMAIL_PASS?: string;
+  GCP_SERVICE_ACCOUNT_JSON?: string;
   CLAWDBOT_BIND_MODE?: string;
   DEV_MODE?: string; // Set to 'true' for local dev (skips CF Access auth + moltbot device pairing)
   E2E_TEST_MODE?: string; // Set to 'true' for E2E tests (skips CF Access auth but keeps device pairing)

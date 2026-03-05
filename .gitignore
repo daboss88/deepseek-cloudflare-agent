@@ -1,7 +1,30 @@
-node_modules/
-dist/
-.wrangler/
-.dev.vars
+# ==========================================
+# 🛑 CRITICAL SECRETS (NEVER UPLOAD THESE)
+# ==========================================
 .env
-*.log
+.dev.vars
+calendar-keys.json
+credentials.json
+token.json
+wrangler.jsonc
+
+# ==========================================
+# 🧠 Agent Data (Don't upload personal logs)
+# ==========================================
+agent/memories/
+agent/IDENTITY.md
+agent/user.md
+
+# ==========================================
+# ☁️ Cloudflare & Build Folders
+# ==========================================
+.wrangler/
+dist/
+
+# ==========================================
+# 💻 System & Editor Files
+# ==========================================
+node_modules/
+.git/
+.vscode/
 .DS_Store

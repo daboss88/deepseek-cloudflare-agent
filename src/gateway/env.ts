@@ -74,5 +74,20 @@ export function buildEnvVars(env: MoltbotEnv): Record<string, string> {
   if (env.CDP_SECRET) envVars.CDP_SECRET = env.CDP_SECRET;
   if (env.WORKER_URL) envVars.WORKER_URL = env.WORKER_URL;
 
+  // Search API Keys
+  if (env.GOOGLE_API_KEY) envVars.GOOGLE_API_KEY = env.GOOGLE_API_KEY;
+  if (env.GOOGLE_CSE_ID) envVars.GOOGLE_CSE_ID = env.GOOGLE_CSE_ID;
+  if (env.BRAVE_API_KEY) envVars.BRAVE_API_KEY = env.BRAVE_API_KEY;
+
+  // Pass Email Credentials
+  if (env.EMAIL_USER) envVars.EMAIL_USER = env.EMAIL_USER;
+  if (env.EMAIL_PASS) envVars.EMAIL_PASS = env.EMAIL_PASS;
+
+  // Pass Google Calendar JSON Key
+  if (env.GCP_SERVICE_ACCOUNT_JSON) envVars.GCP_SERVICE_ACCOUNT_JSON = env.GCP_SERVICE_ACCOUNT_JSON;
+
+  // Pass allowed users for Telegram Memory
+  if (env.ALLOWED_USERS) envVars.TELEGRAM_ALLOWED_USER = env.ALLOWED_USERS;
+
   return envVars;
 }

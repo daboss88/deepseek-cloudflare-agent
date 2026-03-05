@@ -1,0 +1,11 @@
+agent/memories/
+
+agent/IDENTITY.md
+
+agent/user.md
+
+node_modules/
+
+.git/
+
+.vscode/

@@ -1,0 +1,48 @@
+{
+    "$schema": "node_modules/wrangler/config-schema.json",
+    "name": "moltbot-sandbox",
+    "main": "src/index.ts",
+    "compatibility_date": "2025-05-06",
+    "compatibility_flags": [
+        "nodejs_compat"
+    ],
+    "vars": {
+        "MODEL": "deepseek-chat",
+        "DEBUG_ROUTES": "true",
+        "DEV_MODE": "false"
+    },
+    "assets": {
+        "directory": "./dist/client",
+        "binding": "ASSETS"
+    },
+    "containers": [
+        {
+            "class_name": "Sandbox",
+            "image": "./Dockerfile",
+            "instance_type": "standard-4",
+            "max_instances": 3
+        }
+    ],
+    "durable_objects": {
+        "bindings": [
+            {
+                "class_name": "Sandbox",
+                "name": "Sandbox"
+            }
+        ]
+    },
+    "migrations": [
+        {
+            "new_sqlite_classes": [
+                "Sandbox"
+            ],
+            "tag": "v1"
+        }
+    ],
+    "r2_buckets": [
+        {
+            "binding": "BUCKET",
+            "bucket_name": "YOUR_R2_BUCKET_NAME_HERE"
+        }
+    ]
+}
