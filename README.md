@@ -1,80 +1,60 @@
-# DeepSeek-Cloudflare Agent (Self-Hosted)
+# 🚨 PROJECT DISCONTINUED & ARCHIVED 🚨
 
-> A serverless, memory-enabled AI personal assistant powered by DeepSeek V3, running on Cloudflare Workers & R2.
-
-![License](https://img.shields.io/badge/license-MIT-blue.svg) ![Status](https://img.shields.io/badge/status-active-success.svg) ![Stack](https://img.shields.io/badge/tech-Cloudflare%20Workers%20%7C%20R2%20%7C%20DeepSeek-lightgrey)
+**Reason:** High operational costs on Cloudflare Workers (Unbound) and unnecessary complexity. 
+**Recommendation:** Do not deploy this. If you want a personal AI agent, run DeepSeek locally (via Ollama or LM Studio) on a Mac Mini or Raspberry Pi and use **Tailscale** to access it securely from anywhere.
 
 ---
 
 ## ⚠️ CRITICAL WARNING: The Serverless Billing Trap
 
-**PLEASE READ THIS BEFORE YOU ATTACH YOUR CREDIT CARD TO CLOUDFLARE.** Cloudflare markets their "Workers Paid" plan as a flat $5.00/month. **This is highly misleading when using Sandbox Containers / Workers Unbound.** During the development of this bot, a script error caused the AI container to hang. Because Sandbox containers bill by **GiB-seconds (Duration + RAM)** instead of CPU milliseconds, the hung container racked up an $80.00 bill in the background before I noticed.
+**PLEASE READ THIS BEFORE ATTACHING A CREDIT CARD TO CLOUDFLARE.**
 
-If you deploy this to Cloudflare:
+Cloudflare markets "Workers Paid" as a flat $5.00/month. This is highly misleading when using **Sandbox Containers / Workers Unbound**. 
 
-1. **You cannot set a hard dollar limit.**
-2. **You MUST set up Usage-Based Billing Alerts** for "Workers Unbound Duration".
-3. If you run heavy text processing (like parsing hundreds of emails at once), implement strict `setTimeout` kill-switches in your Node.js code so the container crashes gracefully instead of hanging.
+During development, a script error caused the AI container to hang. Because Sandbox containers bill by **GiB-seconds (Duration + RAM)** instead of CPU milliseconds, a hung container racked up an **$80.00 bill** in the background before it was noticed.
 
-*Because of this risk, I highly recommend adapting this Node.js logic to run locally on a Mac Mini or Raspberry Pi if you are a beginner.* Proceed with Cloudflare at your own financial risk.
+### Why this architecture is flawed for LLMs:
+1. **No Hard Limits:** Cloudflare does not allow you to set a hard dollar cap; they will keep billing as long as the process "runs."
+2. **The "Hang" Risk:** Long-polling or streaming responses can easily keep a worker active longer than intended.
+3. **Better Alternative:** Running a local Node.js server behind a **Tailscale Funnel** or **Cloudflare Tunnel** provides the same remote access with $0.00 marginal cost and 0% risk of a "billing surprise."
 
 ---
 
-## Overview
+## Project Overview (Legacy Reference Only)
 
-This project is a highly modified, security-hardened fork of OpenClaw/Moltworker, re-engineered to run **DeepSeek V3** as its cognitive engine. It features **Persistent Long-Term Memory** via Cloudflare R2 (S3-compatible storage), allowing it to remember user details, preferences, and context across sessions.
+This project was a security-hardened fork of OpenClaw/Moltworker, engineered to run **DeepSeek V3** as its cognitive engine with persistent memory via Cloudflare R2.
 
-## Key Features
+### Tech Stack
+* **Compute:** Cloudflare Sandbox (Workers Unbound)
+* **State:** Durable Objects (Chat sessions)
+* **Storage:** Cloudflare R2 (Long-term JSON memory)
+* **Model:** DeepSeek V3
+* **Interface:** Telegram Bot API
 
-- **DeepSeek V3 Integration:** Replaced default OpenAI drivers with DeepSeek's advanced reasoning model.
-- **Infinite Memory:** Uses **Cloudflare R2** to store JSON/Markdown logs of conversations. It doesn't "forget" when the server restarts.
-- **Enterprise Security:** Custom "Allowlist" protocol. The bot ignores all Telegram messages unless the User ID matches the verified owner.
-- **Search Engine Routing:** Built-in failover search script (Google Custom Search -> Brave Search).
+### Key Lessons Learned
+* **Memory Persistence:** Using R2 for JSON/Markdown logs is highly effective for "infinite" memory, but the latency of fetching state on every worker wake-up adds to the execution duration.
+* **Security:** The "Allowlist" protocol (ignoring all Telegram IDs except the owner) is the bare minimum requirement for any public-facing bot.
 
-## Tech Stack
+---
 
-| Component | Technology | Purpose |
-| :--- | :--- | :--- |
-| **Compute** | Cloudflare Sandbox | Serverless execution environment |
-| **State** | Durable Objects | Manages active chat sessions & "Brain" state |
-| **Storage** | Cloudflare R2 | Long-term memory (S3 Protocol) |
-| **Model** | DeepSeek V3 | LLM for reasoning and chat |
-| **Interface** | Telegram Bot API | User interaction frontend |
+## Legacy Setup (Not Recommended)
 
-## Installation & Setup
-
-### Prerequisites
-
-- Cloudflare Account (Workers & R2 enabled)
-- Telegram Bot Token (@BotFather)
-- DeepSeek API Key
+If you choose to proceed despite the warnings, ensure you:
+1. Set up **Usage-Based Billing Alerts** for "Workers Unbound Duration."
+2. Implement strict `setTimeout` kill-switches in your TypeScript code.
 
 ### 1. Configuration
+`cp wrangler.example.jsonc wrangler.jsonc`
 
-Clone the repo and copy the example config:
-
-```bash
-cp wrangler.example.jsonc wrangler.jsonc
-```
-
-### 2. Security Setup (The Allowlist)
-
-This agent uses a strict allowlist to prevent unauthorized access.
-
-1. **Find your Telegram ID:** Message the bot [@userinfobot](https://t.me/userinfobot) on Telegram. It will reply with your numeric ID.
-2. **Add it to Cloudflare Secrets:**
-   ```bash
-   npx wrangler secret put TELEGRAM_ALLOWED_USER
-   ```
+### 2. Security Setup
+Find your Telegram ID via `@userinfobot` and add it to secrets:
+`npx wrangler secret put TELEGRAM_ALLOWED_USER`
 
 ### 3. Deploy
+`npm run deploy`
 
-```bash
-npm run deploy
-```
+---
 
-## Credits
-
-- **Core Framework:** [OpenClaw](https://github.com/openclaw) & [Moltworker](https://github.com/cloudflare/moltworker)
-- **Modifications:** **Terry (@daboss88)** - DeepSeek migration, R2 persistence fix, Security hardening.
-````
+**Credits:**
+* Core Framework: [OpenClaw](https://github.com/OpenClaw) & Moltworker
+* Modifications: Terry (@daboss88)
